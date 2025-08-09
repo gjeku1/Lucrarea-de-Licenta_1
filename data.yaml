@@ -1,0 +1,10 @@
+path: dataset
+train: images/train
+val: images/valid
+test: images/test
+names:
+- Ambulance
+- car
+- BUS
+- Truck
+nc: 4
