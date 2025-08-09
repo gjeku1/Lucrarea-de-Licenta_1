@@ -1,5 +1,5 @@
 # YOLO Vehicle Detection Configuration
-# Example configuration file for training
+# antrenare
 
 data:
   dataset_root: "dataset"
@@ -12,60 +12,46 @@ data:
   class_names:
     - "Ambulance"
     - "car"
-    - "BUS" 
+    - "BUS"
     - "Truck"
   num_classes: 4
 
 training:
-  # Model configuration
-  model_name: "yolov8n.pt" 
-  model_size: "n"  
-  
-  # Training hyperparameters
+  model_name: "yolov8n.pt"
+  model_size: "n"
   epochs: 100
   batch_size: 16
   learning_rate: 0.01
   image_size: 640
-  device: 0  # 0 for first GPU, 'cpu' for CPU
+  device: 0
   workers: 8
-  
-  # Training settings
-  patience: 50  # Early stopping patience
-  save_period: 10  # Save checkpoint every N epochs
-  cache: true  # Cache images for faster training
-  
-  # Data augmentation
-  hsv_h: 0.015  # HSV-Hue augmentation (0.0-1.0)
-  hsv_s: 0.7    # HSV-Saturation augmentation (0.0-1.0)
-  hsv_v: 0.4    # HSV-Value augmentation (0.0-1.0)
-  degrees: 0.0  # Rotation degrees (-180 to +180)
-  translate: 0.1  # Translation (+/- fraction)
-  scale: 0.5    # Image scale (+/- gain)
-  shear: 0.0    # Shear (+/- degrees)
-  perspective: 0.0  # Perspective transformation (+/- fraction)
-  flipud: 0.0   # Flip up-down probability (0.0-1.0)
-  fliplr: 0.5   # Flip left-right probability (0.0-1.0)
-  mosaic: 1.0   # Mosaic augmentation probability (0.0-1.0)
-  mixup: 0.0    # Mixup augmentation probability (0.0-1.0)
-  
-  # Output configuration
+  patience: 50
+  save_period: 10
+  cache: true
+  hsv_h: 0.015
+  hsv_s: 0.7
+  hsv_v: 0.4
+  degrees: 0.0
+  translate: 0.1
+  scale: 0.5
+  shear: 0.0
+  perspective: 0.0
+  flipud: 0.0
+  fliplr: 0.5
+  mosaic: 1.0
+  mixup: 0.0
   project_name: "runs/train"
   experiment_name: "vehicle_detection"
   save_json: true
   save_hybrid: false
 
 inference:
-  # Model configuration
   model_path: "runs/train/vehicle_detection/weights/best.pt"
-  
-  # Inference parameters
   confidence_threshold: 0.25
   iou_threshold: 0.45
   max_detections: 1000
   image_size: 640
   device: 0
-  
-  # Output configuration
   save_images: true
   save_txt: false
   save_conf: true
@@ -73,50 +59,38 @@ inference:
   show_labels: true
   show_conf: true
   line_thickness: 3
-  
-  # Visualization colors (RGB)
   colors:
-    - [255, 0, 0]    # Red for Ambulance
-    - [0, 255, 0]    # Green for car
-    - [0, 0, 255]    # Blue for BUS
-    - [255, 255, 0]  # Yellow for Truck
+    - [255, 0, 0]
+    - [0, 255, 0]
+    - [0, 0, 255]
+    - [255, 255, 0]
 
 evaluation:
-  # Model and data paths
   model_path: "runs/train/vehicle_detection/weights/best.pt"
   data_yaml: "data.yaml"
-  
-  # Evaluation parameters
   image_size: 640
   device: 0
   batch_size: 32
-  confidence_threshold: 0.001  # Lower for evaluation
-  iou_threshold: 0.6  # Higher for evaluation
-  
-  # Output configuration
+  confidence_threshold: 0.001
+  iou_threshold: 0.6
   save_json: true
   save_hybrid: false
   plots: true
   verbose: true
 
 neptune:
-  # Neptune project configuration
   project_name: "vehicle-detection/yolo"
-  api_token: null  # Set via environment variable NEPTUNE_API_TOKEN
-  mode: "async"  # "async", "sync", "offline", "debug"
-  
-  # Logging configuration
+  api_token: null
+  mode: "async"
   log_model_checkpoints: true
   log_images: true
   log_predictions: true
   log_metrics: true
   log_hyperparameters: true
-  
-  # Upload configuration
   upload_source_files:
     - "train.py"
     - "inference.py"
     - "evaluation.py"
     - "config.py"
     - "utils.py"
-    - "data.yaml" 
+    - "data.yaml"
