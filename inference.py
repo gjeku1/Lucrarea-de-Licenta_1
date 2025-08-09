@@ -1,16 +1,17 @@
 """
 Inference module for YOLO vehicle detection project.
 
-Usage:
-    # Single image inference
+Utilizare:
+    # Inferență pe o singură imagine
     python inference.py --source image.jpg --model best.pt
 
-    # Video inference
+    # Inferență pe video
     python inference.py --source video.mp4 --model best.pt --save_video
 
-    # Batch inference
+    # Inferență pe mai multe imagini (batch)
     python inference.py --source images/ --model best.pt --save_results
 """
+
 
 import argparse
 import time
@@ -21,7 +22,7 @@ from typing import List, Dict, Any, Union, Optional, Tuple
 import sys
 import os
 
-# Add current directory to Python path for local imports
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from ultralytics import YOLO
@@ -68,15 +69,14 @@ class YOLOInference:
         self.config = config if config is not None else get_config()
         self.device = self._determine_device(device)
         
-        # Setup logging
+        
         self.logger = setup_logging(log_level="INFO")
         
-        # Initialize Neptune logging if configured
+        
         self.neptune_logger = None
         if hasattr(self.config.neptune, 'api_token') and self.config.neptune.api_token:
             self.neptune_logger = NeptuneLogger(self.config.neptune, "inference_run")
         
-        # Initialize model
         self.model: Optional[YOLO] = None
         self.class_names: List[str] = self.config.data.class_names
         self.colors: List[Tuple[int, int, int]] = self.config.inference.colors
@@ -105,7 +105,7 @@ class YOLOInference:
             
             self.logger.info("Model loaded successfully")
             
-            # Log model info to Neptune
+           
             if self.neptune_logger and self.neptune_logger.is_active:
                 model_info = {
                     "model_path": self.model_path,
@@ -149,11 +149,11 @@ class YOLOInference:
         try:
             start_time = time.time()
             
-            # Load and validate image
+            
             if not Path(image_path).exists():
                 raise FileNotFoundError(f"Image not found: {image_path}")
             
-            # Perform inference
+          
             results = self.model.predict(
                 source=str(image_path),
                 conf=conf_thresh,
@@ -165,10 +165,10 @@ class YOLOInference:
             
             inference_time = time.time() - start_time
             
-            # Process results
+        
             predictions = self._process_results(results[0])
             
-            # Load original image for visualization
+            
             original_image = cv2.imread(str(image_path))
             if original_image is None:
                 raise ValueError(f"Could not load image: {image_path}")
@@ -220,7 +220,7 @@ class YOLOInference:
         if not image_dir.exists():
             raise FileNotFoundError(f"Image directory not found: {image_dir}")
         
-        # Setup output directory
+        
         if output_dir is None:
             output_dir = Path("inference_results")
         else:
@@ -233,7 +233,6 @@ class YOLOInference:
             if save_results:
                 create_directories([output_dir / "predictions"])
         
-        # Find all image files
         image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
         image_files = [
             f for f in image_dir.iterdir() 
@@ -250,22 +249,22 @@ class YOLOInference:
         
         for i, image_path in enumerate(image_files):
             try:
-                # Perform inference
+               
                 result = self.predict_image(image_path)
                 all_results.append(result)
                 
-                # Save individual results
+                
                 if save_results:
                     result_file = output_dir / "predictions" / f"{image_path.stem}_predictions.json"
                     save_json(result, result_file)
                 
-                # Create and save visualization
+              
                 if save_visualizations:
                     vis_image = self.create_visualization(image_path, result["predictions"])
                     vis_file = output_dir / "visualizations" / f"{image_path.stem}_visualization.jpg"
                     cv2.imwrite(str(vis_file), vis_image)
                 
-                # Log progress
+                
                 if (i + 1) % 10 == 0 or (i + 1) == len(image_files):
                     self.logger.info(f"Processed {i + 1}/{len(image_files)} images")
                     
@@ -276,7 +275,7 @@ class YOLOInference:
         total_time = time.time() - start_time
         avg_time_per_image = total_time / len(all_results) if all_results else 0
         
-        # Save batch summary
+       
         if save_results:
             batch_summary = {
                 "total_images": len(image_files),
@@ -294,7 +293,6 @@ class YOLOInference:
             summary_file = output_dir / "batch_summary.json"
             save_json(batch_summary, summary_file)
             
-            # Log to Neptune
             if self.neptune_logger and self.neptune_logger.is_active:
                 self.neptune_logger.log_metrics(batch_summary)
         
@@ -333,7 +331,7 @@ class YOLOInference:
         if not video_path.exists():
             raise FileNotFoundError(f"Video not found: {video_path}")
         
-        # Setup output path
+    
         if output_path is None:
             output_path = video_path.parent / f"{video_path.stem}_annotated{video_path.suffix}"
         else:
@@ -343,7 +341,7 @@ class YOLOInference:
         if not cap.isOpened():
             raise ValueError(f"Could not open video: {video_path}")
         
-        # Get video properties
+        
         fps = int(cap.get(cv2.CAP_PROP_FPS))
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -351,7 +349,7 @@ class YOLOInference:
         
         self.logger.info(f"Processing video: {width}x{height}, {fps} FPS, {total_frames} frames")
         
-        # Setup video writer
+       
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = None
         if save_video:
@@ -370,13 +368,12 @@ class YOLOInference:
                 
                 frame_count += 1
                 
-                # Skip frames if specified
+               
                 if frame_count % skip_frames != 0:
                     if save_video:
                         out.write(frame)
                     continue
                 
-                # Perform inference on frame
                 frame_start = time.time()
                 
                 results = self.model.predict(
@@ -394,7 +391,7 @@ class YOLOInference:
                 # Visualize predictions on frame
                 annotated_frame = self._visualize_frame(frame, predictions)
                 
-                # Save frame results
+                
                 frame_result = {
                     "frame_number": frame_count,
                     "timestamp": frame_count / fps,
@@ -404,11 +401,11 @@ class YOLOInference:
                 }
                 all_predictions.append(frame_result)
                 
-                # Write annotated frame
+              
                 if save_video and out is not None:
                     out.write(annotated_frame)
                 
-                # Display frame
+           
                 if show_video:
                     cv2.imshow('YOLO Video Inference', annotated_frame)
                     if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -430,7 +427,7 @@ class YOLOInference:
         
         total_time = time.time() - start_time
         
-        # Compile results
+     
         video_results = {
             "video_path": str(video_path),
             "output_path": str(output_path) if save_video else None,
@@ -635,10 +632,10 @@ def main() -> None:
     try:
         print_system_info()
         
-        # Load configuration
+        
         config = get_config()
         
-        # Override config with command line arguments
+      
         config.inference.confidence_threshold = args.conf
         config.inference.iou_threshold = args.iou
         config.inference.image_size = args.imgsz
@@ -651,14 +648,13 @@ def main() -> None:
         print(f"  Image size: {args.imgsz}")
         print(f"  Device: {args.device}")
         
-        # Initialize inference engine
+  
         inference = YOLOInference(args.model, config, args.device)
         inference.load_model()
         
         try:
             source_path = Path(args.source)
             
-            # Determine input type and run appropriate inference
             if source_path.is_file():
                 # Check if it's an image or video
                 image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
