@@ -1,5 +1,5 @@
 """
-Training module for YOLO vehicle detection project.
+modul de antrenare
 
 Usage:
     python train.py --config config.yaml --epochs 100 --batch_size 16
@@ -13,7 +13,7 @@ from typing import Optional, Dict, Any, Union
 import sys
 import os
 
-# Add current directory to Python path for local imports
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from ultralytics import YOLO
@@ -33,14 +33,19 @@ from utils import (
 
 class YOLOTrainer:
     """
-    YOLO model trainer with comprehensive logging and monitoring.
-    
-    This class handles the complete training pipeline including:
-    - Model initialization and configuration
-    - Data preparation and validation
-    - Training execution with monitoring
-    - Checkpointing and model saving
-    - Neptune logging integration
+Antrenor pentru modelul YOLO cu înregistrare și monitorizare completă.
+
+Această clasă gestionează procesul intreg de antrenament, inclusiv:
+
+Inițializarea și configurarea modelului
+
+Pregătirea și validarea datelor
+
+Executarea antrenamentului cu monitorizare
+
+Salvarea punctelor de control și a modelului
+
+Integrarea cu Neptune pentru înregistrarea datelor
     """
     
     def __init__(self, config: Config, run_name: Optional[str] = None):
@@ -63,13 +68,12 @@ class YOLOTrainer:
         create_directories(dirs_to_create)
         print(f"Created directories: {dirs_to_create}")
         
-        # Now setup logging with the created directory
+  
         self.logger = setup_logging(
             log_level="INFO",
             log_file=f"{config.training.project_name}/train.log"
         )
-        
-        # Initialize Neptune logging if enabled
+       
         self.neptune_logger = None
         if hasattr(config.neptune, 'api_token') and config.neptune.api_token:
             self.neptune_logger = NeptuneLogger(config.neptune, run_name)
@@ -103,7 +107,7 @@ class YOLOTrainer:
         """
         self.logger.info("Validating training environment...")
         
-        # Check if CUDA is available if GPU training is requested
+      
         if isinstance(self.config.training.device, int) and self.config.training.device >= 0:
             if not torch.cuda.is_available():
                 self.logger.error("CUDA not available but GPU device requested")
@@ -112,13 +116,12 @@ class YOLOTrainer:
             if self.config.training.device >= torch.cuda.device_count():
                 self.logger.error(f"GPU device {self.config.training.device} not available")
                 return False
-        
-        # Validate dataset paths
+       
         if not validate_paths(self.config):
             self.logger.error("Dataset path validation failed")
             return False
         
-        # Check if model file exists (for pretrained models)
+      
         model_path = Path(self.config.training.model_name)
         if model_path.suffix == '.pt' and not model_path.exists():
             self.logger.warning(f"Pretrained model {model_path} not found. Will try to download.")
@@ -134,8 +137,7 @@ class YOLOTrainer:
             str: Path to the data configuration file
         """
         self.logger.info("Preparing dataset configuration...")
-        
-        # Create data.yaml file
+       
         data_yaml_path = "data.yaml"
         create_data_yaml(self.config, data_yaml_path)
         
@@ -155,7 +157,6 @@ class YOLOTrainer:
             
             self.logger.info("Model initialized successfully")
             
-            # Log model architecture if Neptune is available
             if self.neptune_logger and self.neptune_logger.is_active:
                 try:
                     model_info = {
@@ -177,7 +178,7 @@ class YOLOTrainer:
             return
         
         try:
-            # Prepare hyperparameters for logging
+            
             hyperparameters = {
                 "training": {
                     "epochs": self.config.training.epochs,
@@ -229,7 +230,7 @@ class YOLOTrainer:
         self.start_time = time.time()
         
         try:
-            # Prepare training arguments
+            
             train_args = {
                 'data': data_yaml_path,
                 'epochs': self.config.training.epochs,
@@ -246,7 +247,7 @@ class YOLOTrainer:
                 'save_json': self.config.training.save_json,
                 'save_hybrid': self.config.training.save_hybrid,
                 
-                # Data augmentation parameters
+                
                 'hsv_h': self.config.training.hsv_h,
                 'hsv_s': self.config.training.hsv_s,
                 'hsv_v': self.config.training.hsv_v,
@@ -263,16 +264,15 @@ class YOLOTrainer:
             
             self.logger.info(f"Training arguments: {train_args}")
             
-            # Start training
+            
             results = self.model.train(**train_args)
             
-            # Calculate training time
+            
             training_time = time.time() - self.start_time
             formatted_time = format_time(training_time)
             
             self.logger.info(f"Training completed successfully in {formatted_time}")
             
-            # Log final results to Neptune
             if self.neptune_logger and self.neptune_logger.is_active:
                 try:
                     final_metrics = {
@@ -281,13 +281,13 @@ class YOLOTrainer:
                         "final_epoch": self.config.training.epochs,
                     }
                     
-                    # Extract metrics from results if available
+                    
                     if hasattr(results, 'results_dict'):
                         final_metrics.update(results.results_dict)
                     
                     self.neptune_logger.log_metrics(final_metrics)
                     
-                    # Log best model weights
+                  
                     best_weights_path = f"{self.config.training.project_name}/{self.config.training.experiment_name}/weights/best.pt"
                     if Path(best_weights_path).exists():
                         self.neptune_logger.log_model(best_weights_path, "best_model")
@@ -424,10 +424,10 @@ def main() -> None:
     args = parse_arguments()
     
     try:
-        # Print system information
+        
         print_system_info()
         
-        # Load configuration
+       
         if args.config:
             config = Config.from_yaml(args.config)
             print(f"Configuration loaded from {args.config}")
@@ -435,7 +435,6 @@ def main() -> None:
             config = get_config()
             print("Using default configuration")
         
-        # Override config with command line arguments
         if args.model:
             config.training.model_name = args.model
         if args.epochs:
@@ -467,31 +466,30 @@ def main() -> None:
         print(f"  Project: {config.training.project_name}")
         print(f"  Experiment: {config.training.experiment_name}")
         
-        # Initialize trainer  
+          
         run_name = f"{config.training.experiment_name}_{int(time.time())}"
         trainer = YOLOTrainer(config, run_name)
         
         try:
-            # Setup and validation
+          
             if not trainer.validate_environment():
                 print("Environment validation failed. Exiting.")
                 return
             
-            # Prepare data and model
+          
             data_yaml_path = trainer.prepare_data()
             trainer.initialize_model()
             trainer.log_hyperparameters()
             
-            # Handle resume training
             if args.resume:
                 print(f"Resuming training from {args.resume}")
                 # Load checkpoint logic would go here
             
-            # Execute training
+          
             print("Starting training...")
             results = trainer.train(data_yaml_path)
             
-            # Print results
+          
             print("\n" + "="*50)
             print("TRAINING COMPLETED SUCCESSFULLY")
             print("="*50)
