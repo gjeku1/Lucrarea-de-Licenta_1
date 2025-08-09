@@ -1,5 +1,5 @@
 """
-Utility functions for YOLO vehicle detection project.
+Funcții utilitare pentru proiectul de detectare vehicule YOLO.
 """
 
 import os
@@ -19,7 +19,7 @@ try:
     NEPTUNE_AVAILABLE = True
 except ImportError:
     NEPTUNE_AVAILABLE = False
-    print("Neptune not available. Install with: pip install neptune")
+    print("Neptune nu este disponibil. Instalează cu: pip install neptune")
 
 from config import Config, NeptuneConfig
 
@@ -30,33 +30,33 @@ def setup_logging(
     log_format: Optional[str] = None
 ) -> logging.Logger:
     """
-    Set up logging configuration for the project.
+    Configurează sistemul de înregistrare a jurnalului pentru proiect.
     
     Args:
-        log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        log_file: Path to log file. If None, logs only to console
-        log_format: Custom log format string
+        log_level: Nivelul de logare (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        log_file: Calea către fișierul de log. Dacă None, loghează doar în consolă
+        log_format: Format personalizat pentru mesajele de log
         
     Returns:
-        logging.Logger: Configured logger instance
+        logging.Logger: Instanța configurată a logger-ului
     """
     if log_format is None:
         log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     
-    # Configure logging
+    # Configurează logging-ul
     logging.basicConfig(
         level=getattr(logging, log_level.upper()),
         format=log_format,
         handlers=[
-            logging.StreamHandler(),  # Console handler
+            logging.StreamHandler(),  # Handler pentru consolă
         ]
     )
     
     logger = logging.getLogger("vehicle_detection")
     
-    # Add file handler if log_file is specified
+    # Adaugă handler pentru fișier dacă log_file este specificat
     if log_file:
-        # Create directory if it doesn't exist
+        # Creează directorul dacă nu există
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
         
@@ -68,30 +68,30 @@ def setup_logging(
 
 
 class NeptuneLogger:
-    """Neptune logging wrapper for ML experiment tracking."""
+    """Wrapper pentru înregistrarea experimentelor în Neptune."""
     
     def __init__(self, config: NeptuneConfig, run_name: Optional[str] = None):
         """
-        Initialize Neptune logger.
+        Inițializează logger-ul Neptune.
         
         Args:
-            config: Neptune configuration object
-            run_name: Custom run name. If None, uses timestamp
+            config: Obiect de configurare Neptune
+            run_name: Nume personalizat pentru rulare. Dacă None, folosește timestamp
         """
         self.config = config
         self.run = None
         self.is_active = False
         
         if not NEPTUNE_AVAILABLE:
-            print("Warning: Neptune not available. Logging will be skipped.")
+            print("Avertisment: Neptune nu este disponibil. Înregistrarea va fi omisă.")
             return
         
         try:
-            # Generate run name if not provided
+            # Generează nume pentru rulare dacă nu este specificat
             if run_name is None:
                 run_name = f"vehicle_detection_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             
-            # Initialize Neptune run
+            # Inițializează rularea Neptune
             self.run = neptune_client.init_run(
                 project=config.project_name,
                 api_token=config.api_token,
@@ -101,25 +101,25 @@ class NeptuneLogger:
             )
             
             self.is_active = True
-            print(f"Neptune run initialized: {self.run['sys/id'].fetch()}")
+            print(f"Rulare Neptune inițializată: {self.run['sys/id'].fetch()}")
             
         except Exception as e:
-            print(f"Failed to initialize Neptune: {e}")
+            print(f"Eșec la inițializarea Neptune: {e}")
             self.is_active = False
     
     def log_hyperparameters(self, params: Dict[str, Any]) -> None:
-        """Log hyperparameters to Neptune."""
+        """Înregistrează hiperparametrii în Neptune."""
         if not self.is_active:
             return
         
         try:
             self.run["hyperparameters"] = params
-            print("Hyperparameters logged to Neptune")
+            print("Hiperparametri înregistrați în Neptune")
         except Exception as e:
-            print(f"Failed to log hyperparameters: {e}")
+            print(f"Eșec la înregistrarea hiperparametrilor: {e}")
     
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        """Log metrics to Neptune."""
+        """Înregistrează metrici în Neptune."""
         if not self.is_active:
             return
         
@@ -130,10 +130,10 @@ class NeptuneLogger:
                 else:
                     self.run[f"metrics/{key}"] = value
         except Exception as e:
-            print(f"Failed to log metrics: {e}")
+            print(f"Eșec la înregistrarea metricilor: {e}")
     
     def log_image(self, image: Union[str, np.ndarray], name: str, description: str = "") -> None:
-        """Log image to Neptune."""
+        """Înregistrează imagine în Neptune."""
         if not self.is_active:
             return
         
@@ -141,7 +141,7 @@ class NeptuneLogger:
             if isinstance(image, str):
                 self.run[f"images/{name}"].upload(image)
             else:
-                # Convert numpy array to image
+                # Converteste numpy array în imagine
                 import matplotlib.pyplot as plt
                 plt.figure(figsize=(10, 8))
                 plt.imshow(image)
@@ -150,21 +150,21 @@ class NeptuneLogger:
                 self.run[f"images/{name}"].upload(plt.gcf())
                 plt.close()
         except Exception as e:
-            print(f"Failed to log image {name}: {e}")
+            print(f"Eșec la înregistrarea imaginii {name}: {e}")
     
     def log_model(self, model_path: str, name: str = "model") -> None:
-        """Log model checkpoint to Neptune."""
+        """Înregistrează model în Neptune."""
         if not self.is_active:
             return
         
         try:
             self.run[f"models/{name}"].upload(model_path)
-            print(f"Model {name} logged to Neptune")
+            print(f"Model {name} înregistrat în Neptune")
         except Exception as e:
-            print(f"Failed to log model: {e}")
+            print(f"Eșec la înregistrarea modelului: {e}")
     
     def log_file(self, file_path: str, name: Optional[str] = None) -> None:
-        """Log file to Neptune."""
+        """Înregistrează fișier în Neptune."""
         if not self.is_active:
             return
         
@@ -173,24 +173,24 @@ class NeptuneLogger:
                 name = Path(file_path).name
             self.run[f"files/{name}"].upload(file_path)
         except Exception as e:
-            print(f"Failed to log file {file_path}: {e}")
+            print(f"Eșec la înregistrarea fișierului {file_path}: {e}")
     
     def stop(self) -> None:
-        """Stop Neptune run."""
+        """Oprește rularea Neptune."""
         if self.is_active and self.run:
             try:
                 self.run.stop()
-                print("Neptune run stopped")
+                print("Rulare Neptune oprită")
             except Exception as e:
-                print(f"Failed to stop Neptune run: {e}")
+                print(f"Eșec la oprirea rulării Neptune: {e}")
 
 
 def create_directories(paths: List[Union[str, Path]]) -> None:
     """
-    Create directories if they don't exist.
+    Creează directoarele dacă nu există.
     
     Args:
-        paths: List of directory paths to create
+        paths: Listă de căi pentru directoarele de creat
     """
     for path in paths:
         Path(path).mkdir(parents=True, exist_ok=True)
@@ -198,13 +198,13 @@ def create_directories(paths: List[Union[str, Path]]) -> None:
 
 def load_yaml(file_path: Union[str, Path]) -> Dict[str, Any]:
     """
-    Load YAML file.
+    Încarcă fișier YAML.
     
     Args:
-        file_path: Path to YAML file
+        file_path: Calea către fișierul YAML
         
     Returns:
-        Dict containing YAML content
+        Dict conținând datele din YAML
     """
     with open(file_path, 'r') as f:
         return yaml.safe_load(f)
@@ -212,11 +212,11 @@ def load_yaml(file_path: Union[str, Path]) -> Dict[str, Any]:
 
 def save_yaml(data: Dict[str, Any], file_path: Union[str, Path]) -> None:
     """
-    Save data to YAML file.
+    Salvează date în fișier YAML.
     
     Args:
-        data: Data to save
-        file_path: Output file path
+        data: Datele de salvat
+        file_path: Calea către fișierul de ieșire
     """
     with open(file_path, 'w') as f:
         yaml.dump(data, f, default_flow_style=False, indent=2)
@@ -224,13 +224,13 @@ def save_yaml(data: Dict[str, Any], file_path: Union[str, Path]) -> None:
 
 def load_json(file_path: Union[str, Path]) -> Dict[str, Any]:
     """
-    Load JSON file.
+    Încarcă fișier JSON.
     
     Args:
-        file_path: Path to JSON file
+        file_path: Calea către fișierul JSON
         
     Returns:
-        Dict containing JSON content
+        Dict conținând datele din JSON
     """
     with open(file_path, 'r') as f:
         return json.load(f)
@@ -238,12 +238,12 @@ def load_json(file_path: Union[str, Path]) -> Dict[str, Any]:
 
 def save_json(data: Dict[str, Any], file_path: Union[str, Path], indent: int = 2) -> None:
     """
-    Save data to JSON file.
+    Salvează date în fișier JSON.
     
     Args:
-        data: Data to save
-        file_path: Output file path
-        indent: JSON indentation level
+        data: Datele de salvat
+        file_path: Calea către fișierul de ieșire
+        indent: Nivelul de indentare JSON
     """
     with open(file_path, 'w') as f:
         json.dump(data, f, indent=indent)
@@ -258,23 +258,23 @@ def visualize_predictions(
     thickness: int = 2
 ) -> np.ndarray:
     """
-    Visualize predictions on image.
+    Vizualizează predicțiile pe imagine.
     
     Args:
-        image: Input image as numpy array
-        predictions: List of prediction dictionaries with keys: 'bbox', 'confidence', 'class_id'
-        class_names: List of class names
-        colors: List of colors for each class
-        confidence_threshold: Minimum confidence to display
-        thickness: Line thickness for bounding boxes
+        image: Imaginea de intrare ca numpy array
+        predictions: Listă de dicționare cu predicții (chei: 'bbox', 'confidence', 'class_id')
+        class_names: Lista de nume de clase
+        colors: Lista de culori pentru fiecare clasă
+        confidence_threshold: Pragma de încredere minimă pentru afișare
+        thickness: Grosimea liniei pentru bounding boxes
         
     Returns:
-        np.ndarray: Image with visualized predictions
+        np.ndarray: Imaginea cu predicții vizualizate
     """
     if colors is None:
         colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0)]
     
-    # Create a copy of the image
+    # Creează o copie a imaginii
     vis_image = image.copy()
     
     for pred in predictions:
@@ -282,19 +282,19 @@ def visualize_predictions(
         if confidence < confidence_threshold:
             continue
         
-        # Extract bounding box coordinates
+        # Extrage coordonatele bounding box-ului
         bbox = pred['bbox']
         x1, y1, x2, y2 = map(int, bbox)
         
-        # Get class information
+        # Obține informațiile despre clasă
         class_id = pred['class_id']
         class_name = class_names[class_id] if class_id < len(class_names) else f"Class_{class_id}"
         color = colors[class_id % len(colors)]
         
-        # Draw bounding box
+        # Desenează bounding box
         cv2.rectangle(vis_image, (x1, y1), (x2, y2), color, thickness)
         
-        # Draw label
+        # Desenează etichetă
         label = f"{class_name}: {confidence:.2f}"
         label_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)[0]
         cv2.rectangle(
@@ -324,23 +324,23 @@ def calculate_metrics(
     confidence_threshold: float = 0.5
 ) -> Dict[str, float]:
     """
-    Calculate detection metrics (mAP, precision, recall).
+    Calculează metrici de detectare (mAP, precizie, recall).
     
     Args:
-        predictions: List of prediction dictionaries
-        ground_truth: List of ground truth dictionaries
-        iou_threshold: IoU threshold for matching predictions to ground truth
-        confidence_threshold: Confidence threshold for filtering predictions
+        predictions: Lista de predicții
+        ground_truth: Lista de adevăruri teren (ground truth)
+        iou_threshold: Pragul IoU pentru potrivirea predicțiilor cu ground truth
+        confidence_threshold: Pragul de încredere pentru filtrarea predicțiilor
         
     Returns:
-        Dict containing calculated metrics
+        Dict conținând metricile calculate
     """
-    # Filter predictions by confidence
+    # Filtrează predicțiile după încredere
     filtered_preds = [p for p in predictions if p['confidence'] >= confidence_threshold]
     
-    # Calculate IoU for all prediction-GT pairs
+    # Calculează IoU pentru toate perechile predicție-ground truth
     def calculate_iou(box1: List[float], box2: List[float]) -> float:
-        """Calculate IoU between two bounding boxes."""
+        """Calculează IoU între două bounding box-uri."""
         x1 = max(box1[0], box2[0])
         y1 = max(box1[1], box2[1])
         x2 = min(box1[2], box2[2])
@@ -356,10 +356,10 @@ def calculate_metrics(
         
         return intersection / union if union > 0 else 0.0
     
-    # Match predictions to ground truth
+    # Potrivește predicțiile cu ground truth
     tp = 0  # True positives
     fp = 0  # False positives
-    fn = len(ground_truth)  # False negatives (initially all GT)
+    fn = len(ground_truth)  # False negatives (inițial toate GT)
     
     matched_gt = set()
     
@@ -384,7 +384,7 @@ def calculate_metrics(
         else:
             fp += 1
     
-    # Calculate metrics
+    # Calculează metrici
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
     f1_score = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
@@ -401,10 +401,10 @@ def calculate_metrics(
 
 def get_device() -> torch.device:
     """
-    Get the best available device for training/inference.
+    Returnează cel mai bun dispozitiv disponibil pentru antrenare/inferență.
     
     Returns:
-        torch.device: Best available device
+        torch.device: Cel mai bun dispozitiv disponibil
     """
     if torch.cuda.is_available():
         return torch.device('cuda')
@@ -416,13 +416,13 @@ def get_device() -> torch.device:
 
 def format_time(seconds: float) -> str:
     """
-    Format time in seconds to human-readable string.
+    Formatează timpul în secunde într-un șir lizibil.
     
     Args:
-        seconds: Time in seconds
+        seconds: Timpul în secunde
         
     Returns:
-        str: Formatted time string
+        str: Șir de timp formatat
     """
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
@@ -435,38 +435,38 @@ def format_time(seconds: float) -> str:
 
 
 def print_system_info() -> None:
-    """Print system and environment information."""
+    """Afișează informații despre sistem și mediu."""
     print("=" * 50)
-    print("SYSTEM INFORMATION")
+    print("INFORMAȚII SISTEM")
     print("=" * 50)
     
-    # Python and PyTorch info
+    # Informații Python și PyTorch
     import sys
-    print(f"Python version: {sys.version}")
-    print(f"PyTorch version: {torch.__version__}")
+    print(f"Versiune Python: {sys.version}")
+    print(f"Versiune PyTorch: {torch.__version__}")
     
-    # Device info
+    # Informații dispozitiv
     device = get_device()
-    print(f"Device: {device}")
+    print(f"Dispozitiv: {device}")
     
     if torch.cuda.is_available():
-        print(f"CUDA available: {torch.cuda.is_available()}")
-        print(f"CUDA device count: {torch.cuda.device_count()}")
+        print(f"CUDA disponibil: {torch.cuda.is_available()}")
+        print(f"Număr dispozitive CUDA: {torch.cuda.device_count()}")
         if torch.cuda.device_count() > 0:
-            print(f"CUDA device name: {torch.cuda.get_device_name(0)}")
+            print(f"Nume dispozitiv CUDA: {torch.cuda.get_device_name(0)}")
     
     print("=" * 50)
 
 
 def validate_paths(config: Config) -> bool:
     """
-    Validate that all required paths exist.
+    Verifică dacă toate căile necesare există.
     
     Args:
-        config: Configuration object
+        config: Obiect de configurare
         
     Returns:
-        bool: True if all paths are valid, False otherwise
+        bool: True dacă toate căile sunt valide, False altfel
     """
     required_paths = [
         config.data.dataset_root,
@@ -476,7 +476,7 @@ def validate_paths(config: Config) -> bool:
     
     for path in required_paths:
         if not Path(path).exists():
-            print(f"Error: Required path does not exist: {path}")
+            print(f"Eroare: Calea necesară nu există: {path}")
             return False
     
     return True 
